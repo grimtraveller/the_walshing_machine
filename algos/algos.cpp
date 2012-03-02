@@ -1,7 +1,8 @@
 #include <cstdint>
 #include <vector>
 
-static uint8_t power_ = 12;
+static uint8_t power_ = 2;
+static float   input_[] = { 0.f, 1.f, 2.f, 3.f };
 
 // adapted from: http://graphics.stanford.edu/~seander/bithacks.html
 inline uint32_t ReverseBits(uint32_t v, int bits)
@@ -18,21 +19,26 @@ inline uint32_t ReverseBits(uint32_t v, int bits)
 
 int main(int argc, char* argv[])
 {
-  // create an array of values
-  std::vector<uint32_t> values;
-  for (int i = 0; i < 4096; ++i)
-    values.push_back(i);
-
-  // reverse the bits in each one
-  for (std::vector<uint32_t>::iterator it = values.begin();
-    it != values.end(); ++it)
-    *it = ReverseBits(*it, power_ - 1);
-
   // get the starting values
   int N = 1 << power_;
   int k1 = N;
   int k2 = 1;
   int k3 = N >> 1;
+
+  // create an array of indices
+  std::vector<uint32_t> indices;
+  for (int i = 0; i < N; ++i)
+    indices.push_back(i);
+
+  // reverse the bits in each index
+  for (std::vector<uint32_t>::iterator it = indices.begin();
+    it != indices.end(); ++it)
+    *it = ReverseBits(*it, power_ - 1);
+
+  // use those indices to create a rearranged data array
+  std::vector<float> x;
+  for (int i = 0; i < N; ++i)
+    x.push_back(input_[indices[i]]);
 
   // in-place iteration begins here 
   for (int i1 = 0; i1 < power_; ++i1)
@@ -47,18 +53,18 @@ int main(int argc, char* argv[])
         int j = i + k3;
 
         // get the values from the input vector
-        uint32_t temp1 = values[i];
-        uint32_t temp2 = values[j]; 
+        float temp1 = x[i];
+        float temp2 = x[j]; 
 
         if (i2 % 2)
         {
-          values[i] = temp1 - temp2;
-          values[j] = temp1 + temp2;
+          x[i] = temp1 - temp2;
+          x[j] = temp1 + temp2;
         }
         else
         {
-          values[i] = temp1 + temp2;
-          values[j] = temp1 - temp2;
+          x[i] = temp1 + temp2;
+          x[j] = temp1 - temp2;
         }
       }
 
@@ -70,8 +76,9 @@ int main(int argc, char* argv[])
     k3 >>= 1;
   }
   
-  // Delete this line for inverse transform
-  //x = inv(N) * x; 
+  // Remove this for inverse transform
+  for (int i = 0; i < N; ++i)
+    x[i] /= N;
 
   exit(EXIT_SUCCESS);
 }
