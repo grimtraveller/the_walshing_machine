@@ -34,6 +34,10 @@ void WalshingMachine::process(T** inputs, T** outputs, VstInt32 sampleFrames)
       // perform the transform
       fwht::SequencyOrdered<double, double>(&*buffer_[i].begin(), GetWindowPower(), &*transformed_[i].begin());
 
+      // remove the max element
+      std::vector<double>::iterator max_el = std::max_element(transformed_[i].begin(), transformed_[i].end());
+      *max_el = 0;
+
       // invert back to the output
       fwht::SequencyOrderedInverse<double, T>(&*transformed_[i].begin(), GetWindowPower(), channel_output);
 
