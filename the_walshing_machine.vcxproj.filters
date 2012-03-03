@@ -38,5 +38,8 @@
     <ClInclude Include="walshing_machine.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="algos\fwht.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

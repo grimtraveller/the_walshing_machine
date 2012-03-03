@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <audioeffectx.h>
+#include <vector>
 
 class WalshingMachine : public AudioEffectX
 {
@@ -14,13 +15,14 @@ public:
     canDoubleReplacing();       // supports double replacing mode
 
     // set default parameter values
-    params_[kWinSize] = 0.5;
+    params_[kWinSize] = 0.4;
     params_[kDryWet]  = 1.0;
 
     // set our initial delay (the latency) based on the window
     // size versus the processing block size
     // make sure it's not negative!
-    setInitialDelay(std::max(GetWindowSize() - getBlockSize(), 0));
+    unsigned int delay = std::max<int>(GetWindowSize() - getBlockSize(), 0);
+    setInitialDelay(delay);
   }
    
   enum Params
@@ -74,6 +76,19 @@ public:
   // Process 64 bit (double precision) floats (always in a resume state)
   virtual void processDoubleReplacing(double** inputs, double** outputs, VstInt32 sampleFrames);
 
+	// Called when plug-in is switched to on
+  virtual void resume()
+  {
+    for (int i = 0; i < kNumInputs; ++i)
+    {
+      // Clear the windows, which will get filled by the process calls
+      buffer_[i].clear();
+
+      // Make room inside the transformed buffer
+      transformed_[i].resize(GetWindowSize());
+    }
+  }
+
   enum Programs
   {
     kNumPrograms
@@ -94,7 +109,7 @@ private:
   static const int kMaxWinPower = 14;
 
   // get the window size power based on the window size parameter
-  int GetWindowPower() { return static_cast<int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
+  int GetWindowPower() { return static_cast<unsigned int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
 
   // get the window size based on the window size parameter
   int GetWindowSize()  { return 1 << GetWindowPower(); };
@@ -102,4 +117,9 @@ private:
   template <typename T> 
   void process(T** inputs, T** outputs, VstInt32 sampleFrames);
 
+  // our working window
+  // this fills up with the input, and when it's at least
+  // as large as our window size, we can start some output!
+  std::vector<double> buffer_[kNumInputs];
+  std::vector<double> transformed_[kNumInputs];
 };
