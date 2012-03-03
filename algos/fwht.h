@@ -16,11 +16,11 @@ namespace fwht
     return r;
   }
 
-  template <typename T>
-  void SequencyOrderedInverse(T* input, int power_of_two, T* output)
+  template <typename TIn, typename TOut>
+  void SequencyOrderedInverse(TIn* input, int power_of_two, TOut* output)
   {
     // get the starting values
-    int N  = 1 << power_;
+    int N  = 1 << power_of_two;
     int k1 = N;
     int k2 = 1;
     int k3 = N >> 1;
@@ -33,15 +33,15 @@ namespace fwht
     // reverse the bits in each index
     for (std::vector<uint32_t>::iterator it = indices.begin();
       it != indices.end(); ++it)
-      *it = ReverseBits(*it, power_ - 1);
+      *it = ReverseBits(*it, power_of_two - 1);
 
     // use those indices to create a rearranged input array
     // as the first pass at the output array
     for (int i = 0; i < N; ++i)
-      output[i] = input[indices[i]];
+      output[i] = static_cast<TOut>(input[indices[i]]);
 
     // in-place iteration begins here 
-    for (int i1 = 0; i1 < power_; ++i1)
+    for (int i1 = 0; i1 < power_of_two; ++i1)
     {
       int L1 = 1;
 
@@ -53,8 +53,8 @@ namespace fwht
           int j = i + k3;
 
           // get the values from the input vector
-          float temp1 = output[i];
-          float temp2 = output[j]; 
+          TOut temp1 = output[i];
+          TOut temp2 = output[j]; 
 
           if (i2 % 2)
           {
@@ -77,15 +77,15 @@ namespace fwht
     }
   }
 
-  template <typename T>
-  void SequencyOrdered(T* input, int power_of_two, T* output)
+  template <typename TIn, typename TOut>
+  void SequencyOrdered(TIn* input, int power_of_two, TOut* output)
   {
     // Do the inverse
     SequencyOrderedInverse(input, power_of_two, output);
 
     // Then also do the part we're supposed to "remove" for the inverse transform!
     // Remove this for inverse transform
-    int N  = 1 << power_;
+    int N  = 1 << power_of_two;
     for (int i = 0; i < N; ++i)
       output[i] /= N;
   }
