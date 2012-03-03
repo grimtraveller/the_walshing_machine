@@ -13,6 +13,9 @@ int main(int argc, char* argv[])
   // do the sequency ordered walsh hadamard transform
   fwht::SequencyOrdered<float>(input_, power_, output_);
 
+  // distort by removing a component
+  output_[3] = 0;
+
   // perform the inverse, to end up back where we started
   fwht::SequencyOrderedInverse<float>(output_, power_, input_);
 
