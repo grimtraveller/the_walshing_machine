@@ -4,5 +4,5 @@
 
 AudioEffect* createEffectInstance(audioMasterCallback audioMaster)
 {
-  return new WalshingMachine(audioMaster, WalshingMachine::kNumParams, WalshingMachine::kNumPrograms);
+  return new WalshingMachine(audioMaster, WalshingMachine::kNumPrograms, WalshingMachine::kNumParams);
 }
