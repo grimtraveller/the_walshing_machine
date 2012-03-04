@@ -25,18 +25,22 @@ void WalshingMachine::walsh(TIn* input, TOut* output)
   // create the sorted coeffs, which consist of the absolute value of the coefficient
   // we don't care about its +- value
   for (int k = 0; k < win_size; ++k)
-    sorted_coeffs_[k] = std::abs(coeffs_[k]);
+    sort_coeffs_[k] = Coeff(k, coeffs_[k]);
 
-  // perform an nth-element sort to find the element that's at the correct index
-  int sorted_idx = static_cast<int>(params_[kAmount] * (win_size - 1));
-  std::nth_element(sorted_coeffs_, sorted_coeffs_ + sorted_idx, sorted_coeffs_ + win_size);
+  // sort the coeffs
+  std::sort(sort_coeffs_, sort_coeffs_ + win_size);
 
-  // get the value that we need to be "bigger than" to be kept
-  double comp_val = sorted_coeffs_[sorted_idx];
+  // choose how many to remove
+  int remove = static_cast<int>(params_[kAmount] * (win_size - 1));
 
-  // remove a number of lower elements based on the amount
+  // set the amplitude to 0 for the ones to remove
+  // we don't want to set everything to 0, because then we lose the indices
+  for (int i = 0; i < remove; ++i)
+    sort_coeffs_[i].val = 0;
+
+  // copy back to the coeffs
   for (int k = 0; k < win_size; ++k)
-    coeffs_[k] *= std::abs(coeffs_[k]) >= comp_val;
+    coeffs_[sort_coeffs_[k].idx] = sort_coeffs_[k].val;
 
   // invert back to the output buffer
   fwht::SequencyOrderedInverse<double, TOut>(coeffs_, win_pow, output);

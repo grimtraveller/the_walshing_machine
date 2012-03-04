@@ -132,8 +132,9 @@ private:
 
   // our window size min and max power-of-2
   // 0  corresponds to 2^0  = 1
+  // 1  corresponds to 2^1  = 2
   // 14 corresponds to 2^14 = 16384
-  static const int kMinWinPower = 0;
+  static const int kMinWinPower = 1;
   static const int kMaxWinPower = 14;
 
   // get the window size power based on the window size parameter
@@ -150,9 +151,23 @@ private:
   template <typename TIn, typename TOut>
   void walsh(TIn* input, TOut* output);
 
-  // coefficients and sorted coefficients that have enough room for our max window size
-  double coeffs_       [1<<kMaxWinPower];
-  double sorted_coeffs_[1<<kMaxWinPower];
+  // a special sortable structure
+  // we use it so that we can maintain the original index after sorting
+  struct Coeff
+  {
+    int    idx;
+    double val;
+
+    Coeff() : idx(0), val(0) {}
+    Coeff(int idx, double val) : idx(idx), val(val) {}
+    inline int operator <(const Coeff& other) { return std::abs(val) < std::abs(other.val); }
+  };
+
+  // coefficients that have enough room for our max window size
+  // has a special type so that when it's sorted, it's still obvious
+  // which index it came from originally
+  double coeffs_[1<<kMaxWinPower];
+  Coeff  sort_coeffs_[1<<kMaxWinPower];
 
   // an input buffer for when we work on windows larger than the number of sample frames
   // we need to keep past information to do things properly
