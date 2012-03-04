@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <audioeffectx.h>
 #include <vector>
+#include <Windows.h> // for Beep
 
 class WalshingMachine : public AudioEffectX
 {
@@ -28,6 +29,12 @@ public:
     kNumParams
   };
 
+	// Returns tail size; 0 is default (return 1 for 'no tail'), used in offline processing too
+  // We return the maximum window size because we don't want our buffer filled with
+  // junk if we adjust our position within the track. We'll see if this makes a difference...
+  virtual VstInt32 getGetTailSize() 
+  { return 1<<kMaxWinPower; }
+
 	// Return the value of the parameter with index
   virtual float getParameter(VstInt32 index) 
   { return params_[index]; }
@@ -36,17 +43,13 @@ public:
   virtual void setParameter(VstInt32 index, float value) 
   {
     params_[index] = value; 
-
-    // if we changed the window size, we have a new initial delay
+  
+    // if we're changing the window size, reset the buffer
     switch (index)
     {
-    case kWinSize:
-      // set our initial delay (the latency) based on the window
-      // size versus the processing block size
-      // make sure it's not negative!
-      unsigned int delay = std::max<int>(GetWindowSize() - getBlockSize(), 0);
-      setInitialDelay(delay);
-      ioChanged();
+    case kWinSize: 
+      for (int i = 0; i < kNumInputs; ++i)
+        memset(input_buf_[i], 0, sizeof input_buf_[i]); 
       break;
     }
   }
@@ -90,23 +93,29 @@ public:
   // Process 64 bit (double precision) floats (always in a resume state)
   virtual void processDoubleReplacing(double** inputs, double** outputs, VstInt32 sampleFrames);
 
-	// Called when plug-in is switched to on
-  virtual void resume()
-  {
-    // Clear the windows, which will get filled by the process calls
-    for (int i = 0; i < kNumInputs; ++i)
-    {
-      // input buffer starts empty
-      input_buffer_[i].clear();
+  //// Called when plug-in is initialized
+  // virtual void open()
+  // { Beep(4000, 100); }		
 
-      // output buffer starts with a window full of zeros
-      // for outputting while we fill the input buffer
-      // we subtract the block size, because on the last frame,
-      // we'll receive enough to complete a full analysis on the window,
-      // so we need output only for the n-1 frames before that frame
-      output_buffer_[i] = std::vector<double>(GetWindowSize() - getBlockSize());
-    }
-  }
+  //// Called when plug-in will be released
+  // virtual void close() 
+  // { Beep(3000, 100); }	
+
+  //// Called when plug-in is switched to off
+  // virtual void suspend()
+  // { Beep(2000, 100); }	
+
+  //// Called when plug-in is switched to on
+  //virtual void resume()
+  //{ Beep(1000, 100); }
+
+  //// Called one time before the start of process call. This indicates that the process call will be interrupted (due to Host reconfiguration or bypass state when the plug-in doesn't support softBypass)
+  //virtual VstInt32 startProcess() 
+  //{ Beep(500, 100);  return 0; }		
+
+  //// Called after the stop of process call
+  // virtual VstInt32 stopProcess() 
+  // { Beep(200, 100); return 0; }
 
   enum Programs
   {
@@ -131,7 +140,7 @@ private:
   int GetWindowPower() { return static_cast<int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
 
   // get the window size based on the window size parameter
-  int GetWindowSize()  { return 1 << GetWindowPower(); };
+  int GetWindowSize()  { return 1<<GetWindowPower(); };
 
   // this is called by both processReplacing and processDoubleReplacing
   template <typename T> 
@@ -145,11 +154,12 @@ private:
   double coeffs_       [1<<kMaxWinPower];
   double sorted_coeffs_[1<<kMaxWinPower];
 
-  // our working window
-  // this fills up with the input, and when it's at least
-  // as large as our window size, we can start some output!
-  // the output buffer holds the output, so that when we're waiting
-  // to fill up again, we can use it as output
-  std::vector<double> input_buffer_[kNumInputs];
-  std::vector<double> output_buffer_[kNumInputs];
+  // an input buffer for when we work on windows larger than the number of sample frames
+  // we need to keep past information to do things properly
+  double input_buf_ [kNumInputs][1<<kMaxWinPower];
+
+  // an output buffer, because our normal output is only of size sampleFrames, but we
+  // need to calculate output for the whole window and then copy only the "good" data
+  // into the output
+  double output_buf_[kNumInputs][1<<kMaxWinPower];
 };

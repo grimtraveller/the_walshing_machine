@@ -59,46 +59,28 @@ void WalshingMachine::process(T** inputs, T** outputs, VstInt32 sampleFrames)
         walsh<T, T>(inputs[i] + j, outputs[i] + j);
   }
 
-  //  // push new input into our buffer
-  //  for (int i = 0; i < kNumInputs; ++i)
-  //    for (int j = 0; j < sampleFrames; ++j)
-  //      input_buffer_[i].push_back(static_cast<double>(inputs[i][j]));
+  // 2. sampleFrames is < our window size
+  else
+  {
+    for (int i = 0; i < kNumInputs; ++i)
+    {
+      // shift our buffer back by sampleFrames
+      memmove(input_buf_[i], input_buf_[i] + sampleFrames, sampleFrames * sizeof *input_buf_[i]);
 
-  //  // for each of the inputs...
-  //  for (int i = 0; i < kNumInputs; ++i)
-  //  {
-  //    // if we have anything remaining in our output buffer, use it, and that's all we'll do
-  //    // also, if we don't have enough input to process, do the same
-  //    if (!output_buffer_[i].empty() || input_buffer_[i].size() < GetWindowSize())
-  //    {
-  //      // we have to fill the output entirely
-  //      for (unsigned int j = 0; j < static_cast<unsigned int>(sampleFrames); ++j)
-  //      {
-  //        // start by setting to 0
-  //        outputs[i][j] = 0;
+      // add the new input onto the end of our buffer
+      // can't do a memcpy because we don't know input type
+      for (int j = 0; j < sampleFrames; ++j)
+        input_buf_[i][GetWindowSize() - sampleFrames + j] = inputs[i][j];
 
-  //        // if we have enough in the buffer, use the buffer value
-  //        if (output_buffer_[i].size() > j)
-  //          outputs[i][j] = static_cast<T>(output_buffer_[i][j]);
-  //      }
+      // perform the walsh into the output buffer
+      walsh<double, double>(input_buf_[i], output_buf_[i]);
 
-  //      // erase the lesser of what we used or what we required to fill the output
-  //      output_buffer_[i].erase(
-  //        output_buffer_[i].begin(), 
-  //        output_buffer_[i].begin() + std::min<unsigned int>(sampleFrames, output_buffer_[i].size()));
-
-  //      // we're done with this input!
-  //      continue;
-  //    }
-
-  //    // we should now be able to fill the output with the output buffer
-  //    for (int j = 0; j < sampleFrames; ++j)
-  //      outputs[i][j] = static_cast<T>(output_buffer_[i][j]);
-
-  //    // and erase what we just used
-  //    output_buffer_[i].erase(output_buffer_[i].begin(), output_buffer_[i].begin() + sampleFrames);
-  //  }
-  //}
+      // now we cherry pick only the most "recent" data from the output buffer
+      // and stick that into the output
+      for (int j = 0; j < sampleFrames; ++j)
+        outputs[i][j] = static_cast<T>(output_buf_[i][GetWindowSize() - sampleFrames + j]);
+    }
+  }
 
   //// set output to a 440Hz wave
   //VstTimeInfo* time_info = getTimeInfo(NULL);
