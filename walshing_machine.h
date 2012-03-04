@@ -15,19 +15,15 @@ public:
     canDoubleReplacing();       // supports double replacing mode
 
     // set default parameter values
-    params_[kWinSize] = 0.4;
-    params_[kDryWet]  = 1.0;
-
-    // set our initial delay (the latency) based on the window
-    // size versus the processing block size
-    // make sure it's not negative!
-    unsigned int delay = std::max<int>(GetWindowSize() - getBlockSize(), 0);
-    setInitialDelay(delay);
+    setParameter(kWinSize, 1.0f);
+    setParameter(kAmount,  0.1f);
+    setParameter(kDryWet,  1.0f);
   }
    
   enum Params
   {
     kWinSize,
+    kAmount,
     kDryWet,
     kNumParams
   };
@@ -38,7 +34,22 @@ public:
 
  	// Called when a parameter changed
   virtual void setParameter(VstInt32 index, float value) 
-  { params_[index] = value; }
+  {
+    params_[index] = value; 
+
+    // if we changed the window size, we have a new initial delay
+    switch (index)
+    {
+    case kWinSize:
+      // set our initial delay (the latency) based on the window
+      // size versus the processing block size
+      // make sure it's not negative!
+      unsigned int delay = std::max<int>(GetWindowSize() - getBlockSize(), 0);
+      setInitialDelay(delay);
+      ioChanged();
+      break;
+    }
+  }
 
   // Stuff label with the units in which parameter index is displayed (i.e. "sec", "dB", "type", etc...). Limited to #kVstMaxParamStrLen. 	
   virtual void getParameterLabel(VstInt32 index, char* label)
@@ -46,6 +57,7 @@ public:
     switch (index)
     {
     case kWinSize: strcpy_s(label, kVstMaxParamStrLen, ""); break;
+    case kAmount:  strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     case kDryWet:  strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     }
   }	
@@ -56,6 +68,7 @@ public:
     switch (index)
     {
     case kWinSize: int2string(GetWindowSize(), text, kVstMaxParamStrLen); break;
+    case kAmount:  float2string(params_[kAmount] * 100, text, kVstMaxParamStrLen); break;
     case kDryWet:  float2string(params_[kDryWet] * 100, text, kVstMaxParamStrLen); break;
     }
   }
@@ -66,6 +79,7 @@ public:
     switch (index)
     {
     case kWinSize: strcpy_s(text, kVstMaxParamStrLen, "WinSize"); break;
+    case kAmount:  strcpy_s(text, kVstMaxParamStrLen, "Amount");  break;
     case kDryWet:  strcpy_s(text, kVstMaxParamStrLen, "Dry/Wet"); break;
     }
   }	
@@ -79,13 +93,18 @@ public:
 	// Called when plug-in is switched to on
   virtual void resume()
   {
+    // Clear the windows, which will get filled by the process calls
     for (int i = 0; i < kNumInputs; ++i)
     {
-      // Clear the windows, which will get filled by the process calls
-      buffer_[i].clear();
+      // input buffer starts empty
+      input_buffer_[i].clear();
 
-      // Make room inside the transformed buffer
-      transformed_[i].resize(GetWindowSize());
+      // output buffer starts with a window full of zeros
+      // for outputting while we fill the input buffer
+      // we subtract the block size, because on the last frame,
+      // we'll receive enough to complete a full analysis on the window,
+      // so we need output only for the n-1 frames before that frame
+      output_buffer_[i] = std::vector<double>(GetWindowSize() - getBlockSize());
     }
   }
 
@@ -109,10 +128,10 @@ private:
   static const int kMaxWinPower = 14;
 
   // get the window size power based on the window size parameter
-  int GetWindowPower() { return static_cast<unsigned int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
+  unsigned int GetWindowPower() { return static_cast<unsigned int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
 
   // get the window size based on the window size parameter
-  int GetWindowSize()  { return 1 << GetWindowPower(); };
+  unsigned int GetWindowSize()  { return 1 << GetWindowPower(); };
 
   template <typename T> 
   void process(T** inputs, T** outputs, VstInt32 sampleFrames);
@@ -120,6 +139,8 @@ private:
   // our working window
   // this fills up with the input, and when it's at least
   // as large as our window size, we can start some output!
-  std::vector<double> buffer_[kNumInputs];
-  std::vector<double> transformed_[kNumInputs];
+  // the output buffer holds the output, so that when we're waiting
+  // to fill up again, we can use it as output
+  std::vector<double> input_buffer_[kNumInputs];
+  std::vector<double> output_buffer_[kNumInputs];
 };
