@@ -15,7 +15,7 @@ public:
     canDoubleReplacing();       // supports double replacing mode
 
     // set default parameter values
-    setParameter(kWinSize, 1.0f);
+    setParameter(kWinSize, 0.0f);
     setParameter(kAmount,  0.1f);
     setParameter(kDryWet,  1.0f);
   }
@@ -128,13 +128,22 @@ private:
   static const int kMaxWinPower = 14;
 
   // get the window size power based on the window size parameter
-  unsigned int GetWindowPower() { return static_cast<unsigned int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
+  int GetWindowPower() { return static_cast<int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
 
   // get the window size based on the window size parameter
-  unsigned int GetWindowSize()  { return 1 << GetWindowPower(); };
+  int GetWindowSize()  { return 1 << GetWindowPower(); };
 
+  // this is called by both processReplacing and processDoubleReplacing
   template <typename T> 
   void process(T** inputs, T** outputs, VstInt32 sampleFrames);
+
+  // perform the actual work
+  template <typename TIn, typename TOut>
+  void walsh(TIn* input, TOut* output);
+
+  // coefficients and sorted coefficients that have enough room for our max window size
+  double coeffs_       [1<<kMaxWinPower];
+  double sorted_coeffs_[1<<kMaxWinPower];
 
   // our working window
   // this fills up with the input, and when it's at least
