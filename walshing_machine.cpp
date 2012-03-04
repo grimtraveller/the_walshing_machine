@@ -58,9 +58,17 @@ void WalshingMachine::process(T** inputs, T** outputs, VstInt32 sampleFrames)
   {
     // step through the sampleFrames based on our window size
     // and perform the walsh
+    // place the output into the output buffer so that we can weight the results based on the dry/wet
     for (int i = 0; i < kNumInputs; ++i)
       for (int j = 0; j < sampleFrames; j += GetWindowSize())
-        walsh<T, T>(inputs[i] + j, outputs[i] + j);
+        walsh<T, double>(inputs[i] + j, output_buf_[i] + j);
+
+    // set the output using the dry/wet
+    for (int i = 0; i < kNumInputs; ++i)
+      for (int j = 0; j < sampleFrames; ++j)
+        outputs[i][j] = static_cast<T>(
+                        inputs[i][j]      * (1-params_[kDryWet]) + 
+                        output_buf_[i][j] *    params_[kDryWet]);
   }
 
   // 2. sampleFrames is < our window size
@@ -81,8 +89,10 @@ void WalshingMachine::process(T** inputs, T** outputs, VstInt32 sampleFrames)
 
       // now we cherry pick only the most "recent" data from the output buffer
       // and stick that into the output
+      // we also use the dry-wet control to weight the output
       for (int j = 0; j < sampleFrames; ++j)
-        outputs[i][j] = static_cast<T>(output_buf_[i][GetWindowSize() - sampleFrames + j]);
+        outputs[i][j] = inputs[i][j]                                                       * (1-params_[kDryWet]) + 
+                        static_cast<T>(output_buf_[i][GetWindowSize() - sampleFrames + j]) *    params_[kDryWet];
     }
   }
 
