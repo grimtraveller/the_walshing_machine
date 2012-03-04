@@ -30,10 +30,14 @@ namespace fwht
     for (int i = 0; i < N; ++i)
       indices[i] = i;
 
-    // reverse the bits in each index
-    for (std::vector<uint32_t>::iterator it = indices.begin();
-      it != indices.end(); ++it)
-      *it = ReverseBits(*it, power_of_two - 1);
+    // we only need to reverse the bits if we have more than one index!
+    if (power_of_two > 0)
+    {
+      // reverse the bits in each index
+      for (std::vector<uint32_t>::iterator it = indices.begin();
+        it != indices.end(); ++it)
+        *it = ReverseBits(*it, power_of_two - 1);
+    }
 
     // use those indices to create a rearranged input array
     // as the first pass at the output array
