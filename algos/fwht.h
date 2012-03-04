@@ -17,7 +17,7 @@ namespace fwht
   }
 
   template <typename TIn, typename TOut>
-  void SequencyOrderedInverse(TIn* input, int power_of_two, TOut* output)
+  void SequencyOrderedInverse(TIn const* input, int power_of_two, TOut* output)
   {
     // get the starting values
     int N  = 1 << power_of_two;
@@ -82,7 +82,7 @@ namespace fwht
   }
 
   template <typename TIn, typename TOut>
-  void SequencyOrdered(TIn* input, int power_of_two, TOut* output)
+  void SequencyOrdered(TIn const* input, int power_of_two, TOut* output)
   {
     // Do the inverse
     SequencyOrderedInverse(input, power_of_two, output);
