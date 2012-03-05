@@ -15,11 +15,8 @@ public:
   	canProcessReplacing();      // supports replacing mode
     canDoubleReplacing();       // supports double replacing mode
 
-    // set default parameter values
-    setParameter(kWinSize, 0.8f);
-    setParameter(kLoss,  0.5f);
-    setParameter(kNormliz, 0.8f);
-    setParameter(kDryWet,  1.0f);
+    // start with everything at 0
+    memset(params_, 0, sizeof params_);
   }
    
   enum Params
@@ -65,12 +62,16 @@ public:
     {
     case kWinSize: strcpy_s(label, kVstMaxParamStrLen, ""); break;
     case kLoss:    strcpy_s(label, kVstMaxParamStrLen, "%"); break;
-    case kHPFreq:  strcpy_s(label, kVstMaxParamStrLen, ""); break;
-    case kLPFreq:  strcpy_s(label, kVstMaxParamStrLen, ""); break;
+    case kHPFreq:  strcpy_s(label, kVstMaxParamStrLen, "Hz"); break;
+    case kLPFreq:  strcpy_s(label, kVstMaxParamStrLen, "Hz"); break;
     case kNormliz: strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     case kDryWet:  strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     }
   }	
+
+  // Convert a filter value parameter [0, 1] to Hz
+  double FilterToHz(double value)
+  { return kMinFiltFreq * pow(10, value * (kMaxFiltPower - kMinFiltPower) + kMinFiltPower); }
 
   // Stuff text with a string representation ("0.5", "-3", "PLATE", etc...) of the value of parameter index. Limited to #kVstMaxParamStrLen.
   virtual void getParameterDisplay(VstInt32 index, char* text) 
@@ -79,8 +80,8 @@ public:
     {
     case kWinSize: int2string(GetWindowSize(), text, kVstMaxParamStrLen); break;
     case kLoss:    float2string(params_[kLoss]    * 100, text, kVstMaxParamStrLen); break;
-    case kHPFreq:  float2string(params_[kHPFreq]       , text, kVstMaxParamStrLen); break;
-    case kLPFreq:  float2string(params_[kLPFreq]       , text, kVstMaxParamStrLen); break;
+    case kHPFreq:  int2string(static_cast<int>(FilterToHz(params_[kHPFreq])), text, kVstMaxParamStrLen); break;
+    case kLPFreq:  int2string(static_cast<int>(FilterToHz(params_[kLPFreq])), text, kVstMaxParamStrLen); break;
     case kNormliz: float2string(params_[kNormliz] * 100, text, kVstMaxParamStrLen); break;
     case kDryWet:  float2string(params_[kDryWet]  * 100, text, kVstMaxParamStrLen); break;
     }
@@ -142,6 +143,11 @@ private:
 
   // our actual parameter values
   float params_[kNumParams];
+
+  // with these values, the filter will run from 2Hz-20,000Hz
+  static const int kMinFiltFreq  = 2;
+  static const int kMinFiltPower = 0;
+  static const int kMaxFiltPower = 4;
 
   // our window size min and max power-of-2
   // 0  corresponds to 2^0  = 1

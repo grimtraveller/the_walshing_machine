@@ -23,8 +23,10 @@ void WalshingMachine::walsh(TIn* input, TOut* output)
   fwht::SequencyOrdered<TIn, double>(input, win_pow, coeffs_);
 
   // perform the filtering by zeroing out bins below the high pass and above the low pass
-  int hp_cut_idx = static_cast<int>(params_[kHPFreq] * (win_size - 1));
-  int lp_cut_idx = static_cast<int>(params_[kLPFreq] * (win_size - 1));
+  // since idx * sample_rate / 2 / win_size = Freq,
+  // idx = freq * 2 * win_size / sample_rate
+  int hp_cut_idx = static_cast<int>((win_size<<1) * FilterToHz(params_[kHPFreq]) / getSampleRate());
+  int lp_cut_idx = static_cast<int>((win_size<<1) * FilterToHz(params_[kLPFreq]) / getSampleRate());
   for (int k = 0; k < win_size; ++k)
     coeffs_[k] *= (k >= hp_cut_idx) && (k <= lp_cut_idx);
 
