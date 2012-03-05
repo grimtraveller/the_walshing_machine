@@ -16,8 +16,9 @@ public:
     canDoubleReplacing();       // supports double replacing mode
 
     // set default parameter values
-    setParameter(kWinSize, 0.0f);
-    setParameter(kAmount,  0.1f);
+    setParameter(kWinSize, 0.8f);
+    setParameter(kAmount,  0.5f);
+    setParameter(kNormliz, 0.8f);
     setParameter(kDryWet,  1.0f);
   }
    
@@ -25,6 +26,7 @@ public:
   {
     kWinSize,
     kAmount,
+    kNormliz,
     kDryWet,
     kNumParams
   };
@@ -61,6 +63,7 @@ public:
     {
     case kWinSize: strcpy_s(label, kVstMaxParamStrLen, ""); break;
     case kAmount:  strcpy_s(label, kVstMaxParamStrLen, "%"); break;
+    case kNormliz: strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     case kDryWet:  strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     }
   }	
@@ -71,8 +74,9 @@ public:
     switch (index)
     {
     case kWinSize: int2string(GetWindowSize(), text, kVstMaxParamStrLen); break;
-    case kAmount:  float2string(params_[kAmount] * 100, text, kVstMaxParamStrLen); break;
-    case kDryWet:  float2string(params_[kDryWet] * 100, text, kVstMaxParamStrLen); break;
+    case kAmount:  float2string(params_[kAmount]  * 100, text, kVstMaxParamStrLen); break;
+    case kNormliz: float2string(params_[kNormliz] * 100, text, kVstMaxParamStrLen); break;
+    case kDryWet:  float2string(params_[kDryWet]  * 100, text, kVstMaxParamStrLen); break;
     }
   }
 
@@ -83,6 +87,7 @@ public:
     {
     case kWinSize: strcpy_s(text, kVstMaxParamStrLen, "WinSize"); break;
     case kAmount:  strcpy_s(text, kVstMaxParamStrLen, "Amount");  break;
+    case kNormliz: strcpy_s(text, kVstMaxParamStrLen, "Normliz");  break;
     case kDryWet:  strcpy_s(text, kVstMaxParamStrLen, "Dry/Wet"); break;
     }
   }	

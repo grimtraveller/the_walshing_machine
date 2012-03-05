@@ -42,6 +42,20 @@ void WalshingMachine::walsh(TIn* input, TOut* output)
   for (int k = 0; k < win_size; ++k)
     coeffs_[sort_coeffs_[k].idx] = sort_coeffs_[k].val;
 
+  // perform the normalization
+  
+  // get the sum of the absolute coefficients
+  double sum = 0;
+  for (int k = 0; k < win_size; ++k)
+    sum += std::abs(coeffs_[k]);
+
+  // if we have full normalization, we divide all coefficients by the sum 
+  // to make them sum to 1. if we have no normalization, we leave them as they are
+  // (or divide by 1)
+  double div = 1 * (1 - params_[kNormliz]) + sum * params_[kNormliz];
+  for (int k = 0; k < win_size; ++k)
+    coeffs_[k] /= div;
+
   // invert back to the output buffer
   fwht::SequencyOrderedInverse<double, TOut>(coeffs_, win_pow, output);
 }
