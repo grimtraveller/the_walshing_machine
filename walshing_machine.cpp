@@ -22,6 +22,12 @@ void WalshingMachine::walsh(TIn* input, TOut* output)
   // perform the transform
   fwht::SequencyOrdered<TIn, double>(input, win_pow, coeffs_);
 
+  // perform the filtering by zeroing out bins below the high pass and above the low pass
+  int hp_cut_idx = static_cast<int>(params_[kHPFreq] * (win_size - 1));
+  int lp_cut_idx = static_cast<int>(params_[kLPFreq] * (win_size - 1));
+  for (int k = 0; k < win_size; ++k)
+    coeffs_[k] *= (k >= hp_cut_idx) && (k <= lp_cut_idx);
+
   // create the sorted coeffs, which consist of the absolute value of the coefficient
   // we don't care about its +- value
   for (int k = 0; k < win_size; ++k)
@@ -30,8 +36,11 @@ void WalshingMachine::walsh(TIn* input, TOut* output)
   // sort the coeffs
   std::sort(sort_coeffs_, sort_coeffs_ + win_size);
 
+  // convert the amount to make the knob more active
+  double adj_amount = pow(static_cast<double>(params_[kLoss]), static_cast<double>(1) / kAmountRoot);
+
   // choose how many to remove
-  int remove = static_cast<int>(params_[kAmount] * (win_size - 1));
+  int remove = static_cast<int>(adj_amount * (win_size - 1));
 
   // set the amplitude to 0 for the ones to remove
   // we don't want to set everything to 0, because then we lose the indices

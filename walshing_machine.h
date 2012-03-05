@@ -17,7 +17,7 @@ public:
 
     // set default parameter values
     setParameter(kWinSize, 0.8f);
-    setParameter(kAmount,  0.5f);
+    setParameter(kLoss,  0.5f);
     setParameter(kNormliz, 0.8f);
     setParameter(kDryWet,  1.0f);
   }
@@ -25,7 +25,9 @@ public:
   enum Params
   {
     kWinSize,
-    kAmount,
+    kLoss,
+    kHPFreq,
+    kLPFreq,
     kNormliz,
     kDryWet,
     kNumParams
@@ -62,7 +64,9 @@ public:
     switch (index)
     {
     case kWinSize: strcpy_s(label, kVstMaxParamStrLen, ""); break;
-    case kAmount:  strcpy_s(label, kVstMaxParamStrLen, "%"); break;
+    case kLoss:    strcpy_s(label, kVstMaxParamStrLen, "%"); break;
+    case kHPFreq:  strcpy_s(label, kVstMaxParamStrLen, ""); break;
+    case kLPFreq:  strcpy_s(label, kVstMaxParamStrLen, ""); break;
     case kNormliz: strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     case kDryWet:  strcpy_s(label, kVstMaxParamStrLen, "%"); break;
     }
@@ -74,7 +78,9 @@ public:
     switch (index)
     {
     case kWinSize: int2string(GetWindowSize(), text, kVstMaxParamStrLen); break;
-    case kAmount:  float2string(params_[kAmount]  * 100, text, kVstMaxParamStrLen); break;
+    case kLoss:    float2string(params_[kLoss]    * 100, text, kVstMaxParamStrLen); break;
+    case kHPFreq:  float2string(params_[kHPFreq]       , text, kVstMaxParamStrLen); break;
+    case kLPFreq:  float2string(params_[kLPFreq]       , text, kVstMaxParamStrLen); break;
     case kNormliz: float2string(params_[kNormliz] * 100, text, kVstMaxParamStrLen); break;
     case kDryWet:  float2string(params_[kDryWet]  * 100, text, kVstMaxParamStrLen); break;
     }
@@ -86,8 +92,10 @@ public:
     switch (index)
     {
     case kWinSize: strcpy_s(text, kVstMaxParamStrLen, "WinSize"); break;
-    case kAmount:  strcpy_s(text, kVstMaxParamStrLen, "Amount");  break;
-    case kNormliz: strcpy_s(text, kVstMaxParamStrLen, "Normliz");  break;
+    case kLoss:    strcpy_s(text, kVstMaxParamStrLen, "Loss");    break;
+    case kHPFreq:  strcpy_s(text, kVstMaxParamStrLen, "HPFreq");  break;
+    case kLPFreq:  strcpy_s(text, kVstMaxParamStrLen, "LPFreq");  break;
+    case kNormliz: strcpy_s(text, kVstMaxParamStrLen, "Normliz"); break;
     case kDryWet:  strcpy_s(text, kVstMaxParamStrLen, "Dry/Wet"); break;
     }
   }	
@@ -141,6 +149,11 @@ private:
   // 14 corresponds to 2^14 = 16384
   static const int kMinWinPower = 1;
   static const int kMaxWinPower = 14;
+
+  // a divider to make the amount knob act non-linearly
+  // that way, we don't get all of the 'action' in the last 5%
+  // if the value is 16, we'll take the 16th root of the actual value.
+  static const int kAmountRoot = 16;
 
   // get the window size power based on the window size parameter
   int GetWindowPower() { return static_cast<int>(params_[kWinSize] * (kMaxWinPower - kMinWinPower) + kMinWinPower + 0.5); }
